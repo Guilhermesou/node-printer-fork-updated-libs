@@ -1,0 +1,810 @@
+diff --git a/node_modules/node-abi/.circleci/config.yml b/node_modules/node-abi/.circleci/config.yml
+deleted file mode 100644
+index 7b40131..0000000
+--- a/node_modules/node-abi/.circleci/config.yml
++++ /dev/null
+@@ -1,63 +0,0 @@
+-step-restore-cache: &step-restore-cache
+-  restore_cache:
+-    keys:
+-      - v1-dependencies-{{ arch }}-{{ checksum "yarn.lock" }}
+-      - v1-dependencies-{{ arch }}
+-
+-steps-test: &steps-test
+-  steps:
+-    - checkout
+-    - *step-restore-cache
+-    - run: yarn --frozen-lockfile
+-    - save_cache:
+-        paths:
+-          - node_modules
+-        key: v1-dependencies-{{ arch }}-{{ checksum "yarn.lock" }}
+-    - run: yarn test
+-
+-version: 2.1
+-jobs:
+-  test-linux-10:
+-    docker:
+-      - image: circleci/node:10
+-    <<: *steps-test
+-  test-linux-12:
+-    docker:
+-      - image: circleci/node:12
+-    <<: *steps-test
+-  test-linux-14:
+-    docker:
+-      - image: circleci/node:14
+-    <<: *steps-test
+-  test-linux-16:
+-    docker:
+-      - image: circleci/node:16
+-    <<: *steps-test
+-
+-  release:
+-    docker:
+-      - image: circleci/node:14.15
+-    steps:
+-      - checkout
+-      - *step-restore-cache
+-      - run: yarn --frozen-lockfile
+-      - run: npx semantic-release@17.4.5
+-workflows:
+-  version: 2
+-  test_and_release:
+-    # Run test jobs first, release only when all the test jobs are successful
+-    jobs:
+-      - test-linux-10
+-      - test-linux-12
+-      - test-linux-14
+-      - test-linux-16
+-      - release:
+-          requires:
+-            - test-linux-10
+-            - test-linux-12
+-            - test-linux-14
+-            - test-linux-16
+-          filters:
+-            branches:
+-              only:
+-                - main
+\ No newline at end of file
+diff --git a/node_modules/node-abi/.github/workflows/update-abi.yml b/node_modules/node-abi/.github/workflows/update-abi.yml
+deleted file mode 100644
+index a1ed159..0000000
+--- a/node_modules/node-abi/.github/workflows/update-abi.yml
++++ /dev/null
+@@ -1,41 +0,0 @@
+-name: Auto-update ABI JSON file
+-on:
+-  schedule:
+-    - cron: '0 * * * *'
+-jobs:
+-  autoupdate:
+-    runs-on: ubuntu-latest
+-    steps:
+-    - uses: actions/checkout@v2
+-    - uses: actions/setup-node@v1
+-      with:
+-        node-version: '12.x'
+-    - name: Get npm cache directory
+-      id: npm-cache
+-      run: |
+-        echo "::set-output name=dir::$(npm config get cache)"
+-    - uses: actions/cache@v1
+-      with:
+-        path: ${{ steps.npm-cache.outputs.dir }}
+-        key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
+-        restore-keys: |
+-          ${{ runner.os }}-node-
+-    - run: npm install --no-package-lock
+-    - name: Update ABI registry
+-      run: npm run update-abi-registry
+-    - name: Commit Changes to ABI registry
+-      env:
+-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+-      run: |
+-        echo "machine github.com login $GITHUB_ACTOR password $GITHUB_TOKEN" > ~/.netrc
+-        chmod 600 ~/.netrc
+-        git add abi_registry.json
+-        if test -n "$(git status -s)"; then
+-          git config user.name "GitHub Actions"
+-          git config user.email "github-actions@users.noreply.github.com"
+-          git diff --cached
+-          git commit -m "feat: update ABI registry"
+-          git push origin HEAD:$GITHUB_REF
+-        else
+-          echo No update needed
+-        fi
+diff --git a/node_modules/node-abi/.releaserc.json b/node_modules/node-abi/.releaserc.json
+deleted file mode 100644
+index 693aa6e..0000000
+--- a/node_modules/node-abi/.releaserc.json
++++ /dev/null
+@@ -1,9 +0,0 @@
+-{
+-    "plugins": [
+-      "@semantic-release/commit-analyzer",
+-      "@semantic-release/release-notes-generator",
+-      "@continuous-auth/semantic-release-npm",
+-      "@semantic-release/github"
+-    ],
+-    "branches": [ "main" ]
+-  }
+\ No newline at end of file
+diff --git a/node_modules/node-abi/CODE_OF_CONDUCT.md b/node_modules/node-abi/CODE_OF_CONDUCT.md
+deleted file mode 100644
+index a28ec15..0000000
+--- a/node_modules/node-abi/CODE_OF_CONDUCT.md
++++ /dev/null
+@@ -1,73 +0,0 @@
+-# Contributor Covenant Code of Conduct
+-
+-## Our Pledge
+-
+-In the interest of fostering an open and welcoming environment, we as
+-contributors and maintainers pledge to making participation in our project and
+-our community a harassment-free experience for everyone, regardless of age, body
+-size, disability, ethnicity, gender identity and expression, level of experience,
+-nationality, personal appearance, race, religion, or sexual identity and
+-orientation.
+-
+-## Our Standards
+-
+-Examples of behavior that contributes to creating a positive environment
+-include:
+-
+-* Using welcoming and inclusive language
+-* Being respectful of differing viewpoints and experiences
+-* Gracefully accepting constructive criticism
+-* Focusing on what is best for the community
+-* Showing empathy towards other community members
+-
+-Examples of unacceptable behavior by participants include:
+-
+-* The use of sexualized language or imagery and unwelcome sexual attention or
+-  advances
+-* Trolling, insulting/derogatory comments, and personal or political attacks
+-* Public or private harassment
+-* Publishing others' private information, such as a physical or electronic
+-  address, without explicit permission
+-* Other conduct which could reasonably be considered inappropriate in a
+-  professional setting
+-
+-## Our Responsibilities
+-
+-Project maintainers are responsible for clarifying the standards of acceptable
+-behavior and are expected to take appropriate and fair corrective action in
+-response to any instances of unacceptable behavior.
+-
+-Project maintainers have the right and responsibility to remove, edit, or
+-reject comments, commits, code, wiki edits, issues, and other contributions
+-that are not aligned to this Code of Conduct, or to ban temporarily or
+-permanently any contributor for other behaviors that they deem inappropriate,
+-threatening, offensive, or harmful.
+-
+-## Scope
+-
+-This Code of Conduct applies both within project spaces and in public spaces
+-when an individual is representing the project or its community. Examples of
+-representing a project or community include using an official project e-mail
+-address, posting via an official social media account, or acting as an appointed
+-representative at an online or offline event. Representation of a project may be
+-further defined and clarified by project maintainers.
+-
+-## Enforcement
+-
+-Instances of abusive, harassing, or otherwise unacceptable behavior may be
+-reported by contacting the project team at lukas.geiger94@gmail.com. All
+-complaints will be reviewed and investigated and will result in a response that
+-is deemed necessary and appropriate to the circumstances. The project team is
+-obligated to maintain confidentiality with regard to the reporter of an incident.
+-Further details of specific enforcement policies may be posted separately.
+-
+-Project maintainers who do not follow or enforce the Code of Conduct in good
+-faith may face temporary or permanent repercussions as determined by other
+-members of the project's leadership.
+-
+-## Attribution
+-
+-This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 1.4,
+-available at https://www.contributor-covenant.org/version/1/4/code-of-conduct/
+-
+-[homepage]: https://www.contributor-covenant.org
+diff --git a/node_modules/node-abi/CONTRIBUTING.md b/node_modules/node-abi/CONTRIBUTING.md
+deleted file mode 100644
+index 3a83ae9..0000000
+--- a/node_modules/node-abi/CONTRIBUTING.md
++++ /dev/null
+@@ -1,53 +0,0 @@
+-# Contributing to `node-abi`
+-
+-:+1::tada: First off, thanks for taking the time to contribute to `node-abi`! :tada::+1:
+-
+-## Commit Message Guidelines
+-
+-This module uses [`semantic-release`](https://github.com/semantic-release/semantic-release) to automatically release new versions via Travis.
+-Therefor we have very precise rules over how our git commit messages can be formatted.
+-
+-Each commit message consists of a **header**, a **body** and a **footer**.  The header has a special
+-format that includes a **type**, a **scope** and a **subject** ([full explanation](https://github.com/stevemao/conventional-changelog-angular/blob/master/convention.md)):
+-
+-```
+-<type>(<scope>): <subject>
+-<BLANK LINE>
+-<body>
+-<BLANK LINE>
+-<footer>
+-```
+-
+-### Type
+-
+-Must be one of the following:
+-
+-- **feat**: A new feature. **Will trigger a new release**
+-- **fix**: A bug fix or a addition to one of the target arrays. **Will trigger a new release**
+-- **docs**: Documentation only changes
+-- **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+-- **refactor**: A code change that neither fixes a bug nor adds a feature
+-- **perf**: A code change that improves performance
+-- **test**: Adding missing or correcting existing tests
+-- **chore**: Changes to the build process or auxiliary tools and libraries such as documentation generation
+-
+-
+-### Patch Release
+-
+-```
+-fix(electron): Support Electron 1.8.0
+-```
+-
+-### ~~Minor~~ Feature Release
+-
+-```
+-feat: add .getTarget(abi, runtime)
+-```
+-
+-### ~~Major~~ Breaking Release
+-
+-```
+-feat: Add amazing new feature
+-
+-BREAKING CHANGE: This removes support for Node 0.10 and 0.12.
+-```
+diff --git a/node_modules/node-abi/README.md b/node_modules/node-abi/README.md
+index c911056..c08a389 100644
+--- a/node_modules/node-abi/README.md
++++ b/node_modules/node-abi/README.md
+@@ -1,9 +1,11 @@
+ # Node.js ABI
+ 
+-[![Build Status](https://travis-ci.org/lgeiger/node-abi.svg?branch=v1.0.0)](https://travis-ci.org/lgeiger/node-abi) [![Greenkeeper badge](https://badges.greenkeeper.io/lgeiger/node-abi.svg)](https://greenkeeper.io/)
++[![Build Status](https://circleci.com/gh/electron/node-abi/tree/main.svg?style=shield)](https://circleci.com/gh/electron/node-abi/tree/main)
++[![Auto-update ABI JSON file](https://github.com/electron/node-abi/actions/workflows/update-abi.yml/badge.svg)](https://github.com/electron/node-abi/actions/workflows/update-abi.yml)
++[![Snyk badge](https://snyk.io/test/github/electron/node-abi/badge.svg)](https://snyk.io/test/github/electron/node-abi)
++[![npm version](http://img.shields.io/npm/v/node-abi.svg)](https://npmjs.org/package/node-abi)
+ 
+-
+-Get the Node ABI for a given target and runtime, and vice versa.
++Get the Node ABI (application binary interface) for a given target and runtime, and vice versa.
+ 
+ ## Installation
+ ```
+diff --git a/node_modules/node-abi/abi_registry.json b/node_modules/node-abi/abi_registry.json
+index 15bbb76..bb7fc37 100644
+--- a/node_modules/node-abi/abi_registry.json
++++ b/node_modules/node-abi/abi_registry.json
+@@ -52,11 +52,55 @@
+   },
+   {
+     "runtime": "node",
+-    "target": "17.0.0",
++    "target": "17.0.1",
+     "lts": false,
+     "future": false,
+     "abi": "102"
+   },
++  {
++    "runtime": "node",
++    "target": "18.0.0",
++    "lts": [
++      "2022-10-25",
++      "2023-10-18"
++    ],
++    "future": false,
++    "abi": "108"
++  },
++  {
++    "runtime": "node",
++    "target": "19.0.0",
++    "lts": false,
++    "future": false,
++    "abi": "111"
++  },
++  {
++    "runtime": "node",
++    "target": "20.0.0",
++    "lts": [
++      "2023-10-24",
++      "2024-10-22"
++    ],
++    "future": false,
++    "abi": "115"
++  },
++  {
++    "runtime": "node",
++    "target": "21.0.0",
++    "lts": false,
++    "future": false,
++    "abi": "120"
++  },
++  {
++    "runtime": "node",
++    "target": "22.0.0",
++    "lts": [
++      "2024-10-29",
++      "2025-10-21"
++    ],
++    "future": false,
++    "abi": "127"
++  },
+   {
+     "abi": "70",
+     "future": false,
+@@ -83,14 +127,14 @@
+     "future": false,
+     "lts": false,
+     "runtime": "electron",
+-    "target": "8.0.0-beta.1"
++    "target": "9.0.0-beta.1"
+   },
+   {
+     "abi": "76",
+     "future": false,
+     "lts": false,
+     "runtime": "electron",
+-    "target": "9.0.0-beta.1"
++    "target": "8.0.0-beta.1"
+   },
+   {
+     "abi": "80",
+@@ -104,14 +148,14 @@
+     "future": false,
+     "lts": false,
+     "runtime": "electron",
+-    "target": "10.0.0-beta.1"
++    "target": "11.0.0-beta.1"
+   },
+   {
+     "abi": "82",
+     "future": false,
+     "lts": false,
+     "runtime": "electron",
+-    "target": "11.0.0-beta.1"
++    "target": "10.0.0-beta.1"
+   },
+   {
+     "abi": "85",
+@@ -132,21 +176,21 @@
+     "future": false,
+     "lts": false,
+     "runtime": "electron",
+-    "target": "13.0.0-beta.2"
++    "target": "15.0.0-alpha.1"
+   },
+   {
+     "abi": "89",
+     "future": false,
+     "lts": false,
+     "runtime": "electron",
+-    "target": "15.0.0-alpha.1"
++    "target": "14.0.0-beta.1"
+   },
+   {
+     "abi": "89",
+     "future": false,
+     "lts": false,
+     "runtime": "electron",
+-    "target": "14.0.0-beta.1"
++    "target": "13.0.0-beta.2"
+   },
+   {
+     "abi": "97",
+@@ -178,9 +222,100 @@
+   },
+   {
+     "abi": "103",
+-    "future": true,
++    "future": false,
+     "lts": false,
+     "runtime": "electron",
+     "target": "18.0.0-alpha.1"
++  },
++  {
++    "abi": "106",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "19.0.0-alpha.1"
++  },
++  {
++    "abi": "107",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "20.0.0-alpha.1"
++  },
++  {
++    "abi": "109",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "21.0.0-alpha.1"
++  },
++  {
++    "abi": "110",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "22.0.0-alpha.1"
++  },
++  {
++    "abi": "113",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "23.0.0-alpha.1"
++  },
++  {
++    "abi": "114",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "24.0.0-alpha.1"
++  },
++  {
++    "abi": "116",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "26.0.0-alpha.1"
++  },
++  {
++    "abi": "116",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "25.0.0-alpha.1"
++  },
++  {
++    "abi": "118",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "27.0.0-alpha.1"
++  },
++  {
++    "abi": "119",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "28.0.0-alpha.1"
++  },
++  {
++    "abi": "121",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "29.0.0-alpha.1"
++  },
++  {
++    "abi": "123",
++    "future": true,
++    "lts": false,
++    "runtime": "electron",
++    "target": "31.0.0-alpha.1"
++  },
++  {
++    "abi": "123",
++    "future": false,
++    "lts": false,
++    "runtime": "electron",
++    "target": "30.0.0-alpha.1"
+   }
+ ]
+\ No newline at end of file
+diff --git a/node_modules/node-abi/scripts/update-abi-registry.js b/node_modules/node-abi/scripts/update-abi-registry.js
+deleted file mode 100644
+index 2772f4c..0000000
+--- a/node_modules/node-abi/scripts/update-abi-registry.js
++++ /dev/null
+@@ -1,119 +0,0 @@
+-const got = require('got')
+-const path = require('path')
+-const semver = require('semver')
+-const { writeFile } = require('fs').promises
+-
+-async function getJSONFromCDN (urlPath) {
+-  const response = await got(`https://cdn.jsdelivr.net/gh/${urlPath}`)
+-  return JSON.parse(response.body)
+-}
+-
+-async function fetchElectronReleases () {
+-  const response = await got(`https://electronjs.org/headers/index.json`)
+-  return JSON.parse(response.body)
+-}
+-
+-async function fetchNodeVersions () {
+-  const schedule = await getJSONFromCDN('nodejs/Release/schedule.json')
+-  const versions = {}
+-
+-  for (const [majorVersion, metadata] of Object.entries(schedule)) {
+-    if (majorVersion.startsWith('v0')) {
+-      continue
+-    }
+-    const version = `${majorVersion.slice(1)}.0.0`
+-    const lts = metadata.hasOwnProperty('lts') ? [metadata.lts, metadata.maintenance] : false
+-    versions[version] = {
+-      runtime: 'node',
+-      target: version,
+-      lts: lts,
+-      future: new Date(Date.parse(metadata.start)) > new Date()
+-    }
+-  }
+-
+-  return versions
+-}
+-
+-async function fetchAbiVersions () {
+-  return (await getJSONFromCDN('nodejs/node/doc/abi_version_registry.json'))
+-    .NODE_MODULE_VERSION
+-    .filter(({ modules }) => modules > 66)
+-}
+-
+-function electronReleasesToTargets (releases) {
+-  const versions = releases.map(({ version }) => version)
+-  const versionsByModules = releases
+-    .filter(release => Number(release.modules) >= 70)
+-    .map(({ version, modules }) => ({
+-      version,
+-      modules,
+-    }))
+-    .filter(({ version }) => !version.includes('nightly'))
+-    .sort((a, b) => Number(a.modules) - Number(b.modules))
+-    .reduce(
+-      (acc, { modules, version }) => ({
+-        ...acc,
+-        [`${version.split('.')[0]}-${modules}`]: {
+-          version,
+-          modules,
+-        }
+-      }),
+-      {}
+-    )
+-
+-    return Object.entries(versionsByModules)
+-      .map(
+-        ([major, {version, modules}]) => ({
+-          abi: modules,
+-          future: !versions.find(
+-            v => {
+-              const major = version.split(".")[0]
+-              return semver.satisfies(
+-                v,
+-                /^[0-9]/.test(major) ? `>= ${major}` : major
+-              )
+-            }
+-          ),
+-          lts: false,
+-          runtime: 'electron',
+-          target: version
+-        })
+-      )
+-}
+-
+-function nodeVersionsToTargets (abiVersions, nodeVersions) {
+-  return Object.values(
+-    abiVersions
+-      .filter(({ runtime }) => runtime === 'node')
+-      .reduce(
+-        (acc, abiVersion) => {
+-          const { version: nodeVersion } = semver.coerce(abiVersion.versions)
+-
+-          return {
+-            [nodeVersion]: {
+-              ...nodeVersions[nodeVersion],
+-              abi: abiVersion.modules.toString(),
+-            },
+-            ...acc,
+-          };
+-        },
+-        {}
+-      )
+-  )
+-}
+-
+-async function main () {
+-  const nodeVersions = await fetchNodeVersions()
+-  const abiVersions = await fetchAbiVersions()
+-  const electronReleases = await fetchElectronReleases()
+-  const electronTargets = electronReleasesToTargets(electronReleases)
+-  const nodeTargets = nodeVersionsToTargets(abiVersions, nodeVersions)
+-  const supportedTargets = [
+-    ...nodeTargets,
+-    ...electronTargets,
+-  ]
+-
+-  await writeFile(path.resolve(__dirname, '..', 'abi_registry.json'), JSON.stringify(supportedTargets, null, 2))
+-}
+-
+-main()
+diff --git a/node_modules/node-abi/test/index.js b/node_modules/node-abi/test/index.js
+deleted file mode 100644
+index e33790c..0000000
+--- a/node_modules/node-abi/test/index.js
++++ /dev/null
+@@ -1,166 +0,0 @@
+-var test = require('tape')
+-var semver = require('semver')
+-var getAbi = require('../index').getAbi
+-var getTarget = require('../index').getTarget
+-var getNextTarget = require('../index')._getNextTarget
+-var allTargets = require('../index').allTargets
+-
+-test('getNextTarget gets the next unsupported target', function (t) {
+-  var mockTargets = [
+-    {runtime: 'node', target: '7.0.0', abi: '51', lts: false},
+-    {runtime: 'node', target: '8.0.0', abi: '57', lts: false},
+-    {runtime: 'electron', target: '0.36.0', abi: '47', lts: false},
+-    {runtime: 'electron', target: '1.1.0', abi: '48', lts: false}
+-  ]
+-  t.equal(getNextTarget('node', mockTargets), '9.0.0')
+-  t.equal(getNextTarget('electron', mockTargets), '1.2.0')
+-  t.end()
+-})
+-
+-test('getTarget calculates correct Node target', function (t) {
+-  t.equal(getTarget(undefined), process.versions.node)
+-  t.equal(getTarget(null), process.versions.node)
+-  t.equal(getTarget('11'), '0.10.4')
+-  t.equal(getTarget('14'), '0.11.11')
+-  t.equal(getTarget('46'), '4.0.0')
+-  t.equal(getTarget('47'), '5.0.0')
+-  t.equal(getTarget('48'), '6.0.0')
+-  t.equal(getTarget('51'), '7.0.0')
+-  t.equal(getTarget('67'), '11.0.0')
+-  t.equal(getTarget('72'), '12.0.0')
+-  t.equal(getTarget('83'), '14.0.0')
+-  t.equal(getTarget('88'), '15.0.0')
+-  t.end()
+-})
+-
+-test('getTarget calculates correct Electron target', function (t) {
+-  t.throws(getTarget.bind(null, '14', 'electron'))
+-  t.equal(getTarget('47', 'electron'), '0.36.0')
+-  t.equal(getTarget('48', 'electron'), '1.1.0')
+-  t.equal(getTarget('49', 'electron'), '1.3.0')
+-  t.equal(getTarget('50', 'electron'), '1.4.0')
+-  t.equal(getTarget('76', 'electron'), '8.0.0')
+-  t.equal(getTarget('82', 'electron'), '10.0.0')
+-  t.equal(getTarget('89', 'electron'), '13.0.0')
+-  t.end()
+-})
+-
+-test('getTarget calculates correct Node-Webkit target', function (t) {
+-  t.throws(getTarget.bind(null, '14', 'ode-webkit'))
+-  t.equal(getTarget('47', 'node-webkit'), '0.13.0')
+-  t.equal(getTarget('48', 'node-webkit'), '0.15.0')
+-  t.equal(getTarget('51', 'node-webkit'), '0.18.3')
+-  t.equal(getTarget('57', 'node-webkit'), '0.23.0')
+-  t.equal(getTarget('59', 'node-webkit'), '0.26.5')
+-  t.end()
+-})
+-
+-test('getAbi calculates correct Node ABI', function (t) {
+-  t.equal(getAbi(undefined), process.versions.modules)
+-  t.equal(getAbi(null), process.versions.modules)
+-  t.throws(function () { getAbi('a.b.c') })
+-  t.throws(function () { getAbi(getNextTarget('node')) })
+-  t.equal(getAbi('15.0.0'), '88')
+-  t.equal(getAbi('14.0.0'), '83')
+-  t.equal(getAbi('13.0.0'), '79')
+-  t.equal(getAbi('12.0.0'), '72')
+-  t.equal(getAbi('11.0.0'), '67')
+-  t.equal(getAbi('7.2.0'), '51')
+-  t.equal(getAbi('7.0.0'), '51')
+-  t.equal(getAbi('6.9.9'), '48')
+-  t.equal(getAbi('6.0.0'), '48')
+-  t.equal(getAbi('5.9.9'), '47')
+-  t.equal(getAbi('5.0.0'), '47')
+-  t.equal(getAbi('4.9.9'), '46')
+-  t.equal(getAbi('4.0.0'), '46')
+-  t.equal(getAbi('0.12.17'), '14')
+-  t.equal(getAbi('0.12.0'), '14')
+-  t.equal(getAbi('0.11.16'), '14')
+-  t.equal(getAbi('0.11.11'), '14')
+-  t.equal(getAbi('0.11.10'), '13')
+-  t.equal(getAbi('0.11.8'), '13')
+-  t.equal(getAbi('0.11.7'), '0x000C')
+-  t.equal(getAbi('0.11.0'), '0x000C')
+-  t.equal(getAbi('0.10.48'), '11')
+-  t.equal(getAbi('0.10.30'), '11')
+-  t.equal(getAbi('0.10.4'), '11')
+-  t.equal(getAbi('0.10.3'), '0x000B')
+-  t.equal(getAbi('0.10.1'), '0x000B')
+-  t.equal(getAbi('0.10.0'), '0x000B')
+-  t.equal(getAbi('0.9.12'), '0x000B')
+-  t.equal(getAbi('0.9.9'), '0x000B')
+-  t.equal(getAbi('0.9.8'), '0x000A')
+-  t.equal(getAbi('0.9.1'), '0x000A')
+-  t.equal(getAbi('0.9.0'), '1')
+-  t.equal(getAbi('0.8.0'), '1')
+-  t.equal(getAbi('0.2.0'), '1')
+-  t.end()
+-})
+-
+-test('getAbi calculates correct Electron ABI', function (t) {
+-  t.throws(function () { getAbi(undefined, 'electron') })
+-  t.throws(function () { getAbi(getNextTarget('electron'), 'electron') })
+-  t.equal(getAbi('15.0.0-beta.1', 'electron'), '89')
+-  t.equal(getAbi('14.1.1', 'electron'), '97')
+-  t.equal(getAbi('14.0.0', 'electron'), '89')
+-  t.equal(getAbi('13.0.0', 'electron'), '89')
+-  t.equal(getAbi('12.0.0', 'electron'), '87')
+-  t.equal(getAbi('11.0.0', 'electron'), '85')
+-  t.equal(getAbi('10.0.0', 'electron'), '82')
+-  t.equal(getAbi('9.0.0', 'electron'), '80')
+-  t.equal(getAbi('8.0.0', 'electron'), '76')
+-  t.equal(getAbi('7.0.0', 'electron'), '75')
+-  t.equal(getAbi('6.0.0', 'electron'), '73')
+-  t.equal(getAbi('5.0.0', 'electron'), '70')
+-  t.equal(getAbi('4.1.4', 'electron'), '69')
+-  t.equal(getAbi('4.0.4', 'electron'), '69')
+-  t.equal(getAbi('4.0.3', 'electron'), '64')
+-  t.equal(getAbi('3.1.8', 'electron'), '64')
+-  t.equal(getAbi('2.0.18', 'electron'), '57')
+-  t.equal(getAbi('1.4.0', 'electron'), '50')
+-  t.equal(getAbi('1.3.0', 'electron'), '49')
+-  t.equal(getAbi('1.2.0', 'electron'), '48')
+-  t.equal(getAbi('1.1.0', 'electron'), '48')
+-  t.equal(getAbi('1.0.0', 'electron'), '47')
+-  t.equal(getAbi('0.37.0', 'electron'), '47')
+-  t.equal(getAbi('0.36.0', 'electron'), '47')
+-  t.equal(getAbi('0.35.0', 'electron'), '46')
+-  t.equal(getAbi('0.34.0', 'electron'), '46')
+-  t.equal(getAbi('0.33.0', 'electron'), '46')
+-  t.equal(getAbi('0.32.0', 'electron'), '45')
+-  t.equal(getAbi('0.31.0', 'electron'), '45')
+-  t.equal(getAbi('0.30.0', 'electron'), '44')
+-  t.end()
+-})
+-
+-test('getAbi calculates correct Node-Webkit ABI', function (t) {
+-  t.throws(function () { getAbi(undefined, 'node-webkit') })
+-  t.throws(function () { getAbi(getNextTarget('node-webkit'), 'node-webkit') })
+-  t.equal(getAbi('0.13.0', 'node-webkit'), '47')
+-  t.equal(getAbi('0.14.0', 'node-webkit'), '47')
+-  t.equal(getAbi('0.15.0', 'node-webkit'), '48')
+-  t.equal(getAbi('0.16.0', 'node-webkit'), '48')
+-  t.equal(getAbi('0.17.0', 'node-webkit'), '48')
+-  t.equal(getAbi('0.18.2', 'node-webkit'), '48')
+-  t.equal(getAbi('0.18.3', 'node-webkit'), '51')
+-  t.equal(getAbi('0.19.0', 'node-webkit'), '51')
+-  t.equal(getAbi('0.20.0', 'node-webkit'), '51')
+-  t.equal(getAbi('0.21.0', 'node-webkit'), '51')
+-  t.equal(getAbi('0.22.0', 'node-webkit'), '51')
+-  t.equal(getAbi('0.23.0', 'node-webkit'), '57')
+-  t.equal(getAbi('0.24.0', 'node-webkit'), '57')
+-  t.equal(getAbi('0.25.0', 'node-webkit'), '57')
+-  t.equal(getAbi('0.26.4', 'node-webkit'), '57')
+-  t.equal(getAbi('0.26.5', 'node-webkit'), '59')
+-  t.end()
+-})
+-
+-test('getAbi supports leading v', function (t) {
+-  t.equal(getAbi('v7.2.0'), '51')
+-  t.end()
+-})
+-
+-test('getAbi returns abi if passed as target', function (t) {
+-  t.equal(getAbi('57'), '57')
+-  t.end()
+-})
