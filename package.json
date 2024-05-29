@@ -3,7 +3,7 @@
   "description": "Node.js printer bindings",
   "version": "0.6.4",
   "homepage": "https://github.com/thiagoelg/node-printer",
-  "author": "Ion Lupascu <ionlupascu@gmail.com> (http://program-support.co.uk/)",
+  "author": "Ion Lupascu <ionlupascu@gmail.com> (http://program-support.co.uk/) Klemen Kastelic <klemen.kast@gmail.com> (http://kastelic.net/)",
   "contributors": [
     "Thiago Lugli <thiagoelg@gmail.com>",
     "Eko Eryanto <ekoeryanto@gmail.com>"
@@ -31,7 +31,7 @@
     "test": "nodeunit test"
   },
   "binary": {
-    "module_name": "node_printer",
+    "module_name": "node-printer-fork-updated-libs",
     "module_path": "./lib/",
     "host": "https://github.com/Guilhermesou/node-printer-fork-updated-libs/releases/download/",
     "remote_path": "v{version}"

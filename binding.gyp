@@ -16,7 +16,7 @@
       ]
     },
     {
-      'target_name': 'node_printer',
+      'target_name': 'node-printer-fork-updated-libs',
       'sources': [
         # is like "ls -1 src/*.cc", but gyp does not support direct patterns on
         # sources
