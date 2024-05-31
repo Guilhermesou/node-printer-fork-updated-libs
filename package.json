@@ -41,7 +41,7 @@
       "type": "BSD"
     }
   ],
-  "main": "./lib/printer",
+  "main": "./lib/printerHelper",
   "dependencies": {
     "nan": "^2.19.0",
     "prebuild-install": "^7.1.2"
