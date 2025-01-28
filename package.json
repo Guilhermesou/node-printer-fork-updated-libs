@@ -1,7 +1,7 @@
 {
   "name": "@guilherme_souza/node-printer-updated-fork",
   "description": "Node.js printer bindings",
-  "version": "0.6.15",
+  "version": "0.6.17",
   "homepage": "https://github.com/thiagoelg/node-printer",
   "author": "Ion Lupascu <ionlupascu@gmail.com> (http://program-support.co.uk/) Klemen Kastelic <klemen.kast@gmail.com> (http://kastelic.net/)",
   "contributors": [
@@ -13,6 +13,7 @@
     "url": "git://github.com/Guilhermesou/node-printer-fork-updated-libs.git"
   },
   "devDependencies": {
+    "@types/node": "^22.9.0",
     "node-abi": "^3.62.0",
     "nodeunit": "^0.11.3",
     "patch-package": "^8.0.0",
@@ -44,7 +45,9 @@
   "main": "./lib/printerHelper",
   "dependencies": {
     "nan": "^2.19.0",
-    "prebuild-install": "^7.1.2"
+    "pngjs": "^7.0.0",
+    "prebuild-install": "^7.1.2",
+    "unorm": "^1.6.0"
   },
   "types": "types/index.d.ts",
   "bugs": {

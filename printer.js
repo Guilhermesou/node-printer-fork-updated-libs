@@ -1,1 +1,1 @@
-module.exports = require('./lib/printer');
+module.exports = require('./lib/printerHelper');
