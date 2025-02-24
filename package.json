@@ -1,7 +1,7 @@
 {
   "name": "@guilherme_souza/node-printer-updated-fork",
   "description": "Node.js printer bindings",
-  "version": "0.6.17",
+  "version": "0.6.18",
   "homepage": "https://github.com/thiagoelg/node-printer",
   "author": "Ion Lupascu <ionlupascu@gmail.com> (http://program-support.co.uk/) Klemen Kastelic <klemen.kast@gmail.com> (http://kastelic.net/)",
   "contributors": [
@@ -58,5 +58,6 @@
     "lib": "lib",
     "test": "test"
   },
-  "license": "ISC"
+  "license": "ISC",
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
