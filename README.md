@@ -106,6 +106,12 @@ await pos.printImagePixels(data, width, height);
 ## 🛠 Features
 
 - **Network Printers:** Support for TCP/IP printing via `NetworkPrinter`.
+- **Auto-discovery:** Scan your local network to find printers automatically:
+  ```javascript
+  const { NetworkPrinter } = require('@guilherme_souza/node-printer-updated-fork');
+  const printers = await NetworkPrinter.discover();
+  // returns [{ host: '192.168.1.50', port: 9100 }, ...]
+  ```
 - **Cross-Platform:** Native wrappers for Windows (Spooler API) and POSIX (CUPS).
 - **Driver Options:** Retrieve paper sizes and driver-specific options natively ([POSIX]).
 - **Job Monitoring:** Monitor job status and cancel/pause/resume tasks.

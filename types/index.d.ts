@@ -24,6 +24,10 @@ declare class NetworkPrinter {
     buffer: Buffer,
     options?: { waitForResponse?: boolean }
   ): Promise<void | Buffer>;
+  static discover(options?: {
+    timeout?: number;
+    concurrency?: number;
+  }): Promise<Array<{ host: string; port: number }>>;
 }
 
 declare enum PrinterTypes {

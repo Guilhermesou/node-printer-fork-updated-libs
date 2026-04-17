@@ -14,6 +14,8 @@
 #include <utility>
 #include <sstream>
 #include <fstream>
+#include <thread>
+#include <chrono>
 
 
 namespace{
@@ -1064,3 +1066,107 @@ Napi::Value PrintFile(const Napi::CallbackInfo& info)
 
     return deferred.Promise();
 }
+
+/**
+ * Native Windows Job Monitoring
+ */
+struct WinJobWatchContext {
+    std::u16string printerName;
+    DWORD jobId;
+    Napi::ThreadSafeFunction tsfn;
+};
+
+void watchJobThreadWin(WinJobWatchContext* context) {
+    HANDLE hPrinter = NULL;
+    if (!OpenPrinterW((LPWSTR)context->printerName.c_str(), &hPrinter, NULL)) {
+        context->tsfn.Release();
+        delete context;
+        return;
+    }
+
+    // Connect to printer notifications
+    HANDLE hNotify = FindFirstPrinterChangeNotification(hPrinter, PRINTER_CHANGE_JOB, 0, NULL);
+    if (hNotify == INVALID_HANDLE_VALUE) {
+        ClosePrinter(hPrinter);
+        context->tsfn.Release();
+        delete context;
+        return;
+    }
+
+    bool finished = false;
+    while (!finished) {
+        // Wait for change or timeout (3 sec timeout to allow checking if thread should stop)
+        DWORD dwWait = WaitForSingleObject(hNotify, 3000);
+        
+        if (dwWait == WAIT_OBJECT_0) {
+            DWORD dwChange;
+            if (FindNextPrinterChangeNotification(hNotify, &dwChange, NULL, NULL)) {
+                // Check job status
+                DWORD dwNeeded = 0;
+                GetJobW(hPrinter, context->jobId, 2, NULL, 0, &dwNeeded);
+                if (dwNeeded > 0) {
+                    MemValue<JOB_INFO_2W> jobInfo;
+                    jobInfo.set((JOB_INFO_2W*)malloc(dwNeeded));
+                    if (GetJobW(hPrinter, context->jobId, 2, (LPBYTE)jobInfo.get(), dwNeeded, &dwNeeded)) {
+                        DWORD currentState = jobInfo.get()->Status;
+                        
+                        auto callback = [context, currentState](Napi::Env env, Napi::Function jsCallback) {
+                            Napi::Object result = Napi::Object::New(env);
+                            Napi::Array statusArr = Napi::Array::New(env);
+                            
+                            // Map Windows status to strings
+                            int i = 0;
+                            if (currentState & JOB_STATUS_PRINTING) statusArr.Set(i++, Napi::String::New(env, "PRINTING"));
+                            if (currentState & JOB_STATUS_PRINTED) statusArr.Set(i++, Napi::String::New(env, "PRINTED"));
+                            if (currentState & JOB_STATUS_PAUSED) statusArr.Set(i++, Napi::String::New(env, "PAUSED"));
+                            if (currentState & JOB_STATUS_ERROR) statusArr.Set(i++, Napi::String::New(env, "ERROR"));
+                            if (currentState & JOB_STATUS_DELETED) statusArr.Set(i++, Napi::String::New(env, "DELETED"));
+                            if (currentState & JOB_STATUS_OFFLINE) statusArr.Set(i++, Napi::String::New(env, "OFFLINE"));
+                            if (currentState & JOB_STATUS_PAPEROUT) statusArr.Set((uint32_t)i++, Napi::String::New(env, "PAPER_OUT"));
+                            
+                            if (i == 0) statusArr.Set((uint32_t)0, Napi::String::New(env, "PENDING"));
+
+                            result.Set("id", Napi::Number::New(env, context->jobId));
+                            result.Set("status", statusArr);
+                            jsCallback.Call({result});
+                        };
+                        context->tsfn.BlockingCall(callback);
+
+                        // If job is gone or done
+                        if (currentState & (JOB_STATUS_PRINTED | JOB_STATUS_DELETED | JOB_STATUS_ERROR)) {
+                            finished = true;
+                        }
+                    }
+                } else {
+                    // Job might be gone (completed and cleared)
+                    finished = true;
+                }
+            }
+        } else if (dwWait == WAIT_FAILED) {
+            finished = true;
+        }
+    }
+
+    FindClosePrinterChangeNotification(hNotify);
+    ClosePrinter(hPrinter);
+    context->tsfn.Release();
+    delete context;
+}
+
+Napi::Value watchJob(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    if (info.Length() < 3) return env.Null();
+
+    std::u16string printerName = info[0].As<Napi::String>().Utf16Value();
+    DWORD jobId = info[1].As<Napi::Number>().Uint32Value();
+    Napi::Function callback = info[2].As<Napi::Function>();
+
+    WinJobWatchContext* context = new WinJobWatchContext();
+    context->printerName = printerName;
+    context->jobId = jobId;
+    context->tsfn = Napi::ThreadSafeFunction::New(env, callback, "JobMonitor", 0, 1);
+
+    std::thread(watchJobThreadWin, context).detach();
+    return env.Undefined();
+}
+

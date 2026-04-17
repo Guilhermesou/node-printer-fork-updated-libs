@@ -4,6 +4,8 @@
 #include <map>
 #include <utility>
 #include <sstream>
+#include <thread>
+#include <chrono>
 
 
 #include <cups/cups.h>
@@ -799,4 +801,116 @@ Napi::Value PrintFile(const Napi::CallbackInfo& info)
     worker->Queue();
 
     return deferred.Promise();
+}
+
+/**
+ * Thread-Safe Job Monitoring for POSIX/CUPS
+ */
+struct JobWatchContext {
+    std::string printerName;
+    int jobId;
+    Napi::ThreadSafeFunction tsfn;
+};
+
+void watchJobThread(JobWatchContext* context) {
+    int lastState = -1;
+    bool finished = false;
+
+    while (!finished) {
+        // We use cupsGetJobs even for a single job to be safe
+        cups_job_t *jobs = nullptr;
+        int num_jobs = cupsGetJobs(&jobs, context->printerName.c_str(), 0, CUPS_WHICHJOBS_ALL);
+        
+        cups_job_t *foundJob = nullptr;
+        for (int i = 0; i < num_jobs; i++) {
+            if (jobs[i].id == context->jobId) {
+                foundJob = &jobs[i];
+                break;
+            }
+        }
+
+        if (foundJob) {
+            int currentState = foundJob->state;
+            
+            // Only notify if state changed
+            if (currentState != lastState) {
+                lastState = currentState;
+                
+                auto callback = [context, currentState](Napi::Env env, Napi::Function jsCallback) {
+                  Napi::Object result = Napi::Object::New(env);
+                  Napi::Array statusArr = Napi::Array::New(env);
+                  
+                  // Map IPP state to string
+                  std::string statusStr = "UNKNOWN";
+                  for(auto const& it : getJobStatusMap()) {
+                      if (it.second == currentState) {
+                          statusStr = it.first;
+                          break;
+                      }
+                  }
+                  statusArr.Set((uint32_t)0, Napi::String::New(env, statusStr));
+                  result.Set("id", Napi::Number::New(env, context->jobId));
+                  result.Set("status", statusArr);
+                  
+                  jsCallback.Call({result});
+                };
+
+                context->tsfn.BlockingCall(callback);
+
+                // Termination conditions
+                if (currentState == IPP_JOB_COMPLETED || 
+                    currentState == IPP_JOB_CANCELLED || 
+                    currentState == IPP_JOB_ABORTED) {
+                    finished = true;
+                }
+            }
+        } else {
+            // Job disappeared from queue - assume finished or cleaned up
+            if (lastState != -1) {
+                finished = true;
+            }
+        }
+
+        cupsFreeJobs(num_jobs, jobs);
+
+        if (!finished) {
+            // Natural sleep to reduce CPU usage
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        }
+    }
+
+    // Cleanup
+    context->tsfn.Release();
+    delete context;
+}
+
+Napi::Value watchJob(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (info.Length() < 3) {
+        Napi::Error::New(env, "Expected 3 arguments").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    std::string printerName = info[0].As<Napi::String>().Utf8Value();
+    int jobId = info[1].As<Napi::Number>().Int32Value();
+    Napi::Function callback = info[2].As<Napi::Function>();
+
+    JobWatchContext* context = new JobWatchContext();
+    context->printerName = printerName;
+    context->jobId = jobId;
+    
+    context->tsfn = Napi::ThreadSafeFunction::New(
+        env,
+        callback,
+        "JobMonitor",
+        0, // unlimited queue
+        1, // 1 thread
+        [](Napi::Env env) { /* Finalizer */ }
+    );
+
+    // Start background thread
+    std::thread(watchJobThread, context).detach();
+
+    return env.Undefined();
 }

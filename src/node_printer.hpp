@@ -54,6 +54,7 @@ Napi::Value getPrinterDriverOptions(const Napi::CallbackInfo& info);
  *  @param job id Number
  */
 Napi::Value getJob(const Napi::CallbackInfo& info);
+Napi::Value watchJob(const Napi::CallbackInfo& info);
 
 //TODO
 /** Set job command. 

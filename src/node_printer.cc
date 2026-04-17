@@ -9,6 +9,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set("getPrinterDriverOptions", Napi::Function::New(env, getPrinterDriverOptions));
     exports.Set("getJob", Napi::Function::New(env, getJob));
     exports.Set("setJob", Napi::Function::New(env, setJob));
+    exports.Set("watchJob", Napi::Function::New(env, watchJob));
     exports.Set("printDirect", Napi::Function::New(env, PrintDirect));
     exports.Set("printFile", Napi::Function::New(env, PrintFile));
     exports.Set("getSupportedPrintFormats", Napi::Function::New(env, getSupportedPrintFormats));
