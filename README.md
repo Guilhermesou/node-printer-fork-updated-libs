@@ -106,6 +106,13 @@ await pos.printImagePixels(data, width, height);
 ## 🛠 Features
 
 - **Network Printers:** Support for TCP/IP printing via `NetworkPrinter`.
+- **Printer Bridge Server (HTTP/REST):** Ideal for Electron apps with external URLs. Run a local server to bridge Web and Hardware:
+  ```javascript
+  const { PrinterServer } = require('@guilherme_souza/node-printer-updated-fork');
+  const server = new PrinterServer({ port: 9001 });
+  await server.listen();
+  // Now your web app can POST to http://localhost:9001/print
+  ```
 - **Auto-discovery:** Scan your local network to find printers automatically:
   ```javascript
   const { NetworkPrinter } = require('@guilherme_souza/node-printer-updated-fork');

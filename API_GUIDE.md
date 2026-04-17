@@ -824,3 +824,74 @@ process.on('SIGTERM', () => {
 | Daruma | — | — | — | — | — | — | ✅ |
 
 > Chamadas a recursos não suportados pelo driver agora lançam um erro descritivo em vez de falhar silenciosamente.
+
+---
+
+## 9. Printer Bridge Server (HTTP/REST)
+
+Ideal para aplicações Electron que carregam URLs externas ou ambientes onde vários dispositivos precisam imprimir em uma única máquina host.
+
+### Iniciando o Servidor (No processo Main do Electron)
+
+```javascript
+const { PrinterServer } = require('node-printer-fork-updated-libs');
+
+const server = new PrinterServer({
+  port: 9001,
+  host: '0.0.0.0',       // Permite conexões externas se necessário
+  apiKey: 'minha-chave', // Opcional: segurança extra
+});
+
+await server.listen();
+console.log('Bridge de Impressão online!');
+```
+
+### Consumindo via Frontend (Next.js / Browser)
+
+**1. Listar impressoras disponíveis:**
+
+```javascript
+const response = await fetch('http://localhost:9001/printers');
+const { local, network } = await response.json();
+// local: lista de impressoras USB/Sistema
+// network: lista de impressoras IP (se discover=true for passado na query)
+```
+
+**2. Enviar impressão estruturada:**
+
+```javascript
+await fetch('http://localhost:9001/print', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': 'minha-chave'
+  },
+  body: JSON.stringify({
+    target: 'EPSON_TM-T20', // Nome da impressora local ou { host, port } para rede
+    type: 'epson',
+    commands: [
+      { action: 'alignCenter' },
+      { action: 'bold', value: true },
+      { action: 'text', value: 'RECIBO DE VENDA\n' },
+      { action: 'bold', value: false },
+      { action: 'drawLine' },
+      { action: 'leftRight', value: '1x Cafe', settings: 'R$ 5,00' },
+      { action: 'cut' }
+    ]
+  })
+});
+```
+
+**3. Enviar dados brutos (Base64):**
+
+Se você já tem o buffer gerado:
+
+```javascript
+await fetch('http://localhost:9001/print', {
+  method: 'POST',
+  body: JSON.stringify({
+    target: 'EPSON_TM-T20',
+    raw: btoa('Dados brutos aqui...') // ou Buffer.toString('base64')
+  })
+});
+```
