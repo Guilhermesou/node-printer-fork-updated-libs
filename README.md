@@ -1,69 +1,134 @@
-# Node Printer Prebuild
+# Node Printer (Modern Fork) 🚀
 
-Native bind printers on POSIX and Windows OS from Node.js, electron and node-webkit.
+Native printer bindings for **Node.js**, **Electron**, and **NW.js** on **macOS**, **Windows**, and **Linux**.
 
-[![npm version](https://badge.fury.io/js/@thiagoelg%2Fnode-printer.svg)](https://www.npmjs.com/package/@thiagoelg/node-printer) [![Prebuild Binaries and Publish](https://github.com/thiagoelg/node-printer/actions/workflows/prebuild-main.yml/badge.svg)](https://github.com/thiagoelg/node-printer/actions/workflows/prebuild-main.yml)
-
-> Works with Nodejs 20.x.x
-
-> Prebuild and CI integration courtesy of @ekoeryanto in his [FORK](https://github.com/ekoeryanto/node-printer)
+This is a modernized fork of the original `node-printer`, rewritten to use **N-API (node-addon-api)** for better stability, performance, and long-term compatibility with modern Node.js versions (v16 to v24+).
 
 ---
 
-### **Below is the original README**
+## 💎 Key Modern Improvements (Before vs After)
+
+| Feature | Legacy (Original) | **Modern (This Fork)** |
+|:--- |:--- |:--- |
+| **Node.js Integration** | Deprecated `NAN` (V8-specific) | **N-API (Version-independent)** |
+| **Performance** | Synchronous/Blocking (Freezes UI) | **Fully Asynchronous (Non-blocking)** |
+| **JS API Style** | Callbacks only | **Native Promises (async/await ready)** |
+| **Thermal Printing** | Simple threshold (flat images) | **Floyd-Steinberg Dithering** (Gray simulation) |
+| **Canvas Integration** | None (requires file conversion) | **Direct ImageData/Pixels Support** |
+| **Sintax** | Positional arguments | **Fluent/Chaining API** |
 
 ---
 
-### Reason:
+## 📦 Installation
 
-I was involved in a project where I need to print from Node.JS. This is the reason why I created this project and I want to share my code with others.
-
-### Features:
-
-- Network printers
-- no dependecies;
-- native method wrappers from Windows and POSIX (which uses [CUPS 1.4/MAC OS X 10.6](http://cups.org/)) APIs;
-- compatible with node v0.8.x, 0.9.x and v0.11.x (with 0.11.9 and 0.11.13);
-- compatible with node-webkit v0.8.x and 0.9.2;
-- `getPrinters()` to enumerate all installed printers with current jobs and statuses;
-- `getPrinter(printerName)` to get a specific/default printer info with current jobs and statuses;
-- `getPrinterDriverOptions(printerName)` ([POSIX](http://en.wikipedia.org/wiki/POSIX) only) to get a specific/default printer driver options such as supported paper size and other info
-- `getSelectedPaperSize(printerName)` ([POSIX](http://en.wikipedia.org/wiki/POSIX) only) to get a specific/default printer default paper size from its driver options
-- `getDefaultPrinterName()` return the default printer name;
-- `printDirect(options)` to send a job to a specific/default printer, now supports [CUPS options](http://www.cups.org/documentation.php/options.html) passed in the form of a JS object (see `cancelJob.js` example). To print a PDF from windows it is possible by using [node-pdfium module](https://github.com/tojocky/node-pdfium) to convert a PDF format into EMF and after to send to printer as EMF;
-- `printFile(options)` ([POSIX](http://en.wikipedia.org/wiki/POSIX) only) to print a file;
-- `getSupportedPrintFormats()` to get all possible print formats for printDirect method which depends on OS. `RAW` and `TEXT` are supported from all OS-es;
-- `getJob(printerName, jobId)` to get a specific job info including job status;
-- `setJob(printerName, jobId, command)` to send a command to a job (e.g. `'CANCEL'` to cancel the job);
-- `getSupportedJobCommands()` to get supported job commands for setJob() depends on OS. `'CANCEL'` command is supported from all OS-es.
--
-
-### How to install:
-
-```
+```bash
 npm install @guilherme_souza/node-printer-updated-fork
-```
-
-```
+# or
 yarn add @guilherme_souza/node-printer-updated-fork
 ```
 
-### How to use:
+---
 
-See [examples](https://github.com/thiagoelg/node-printer/tree/main/examples)
+## 🚀 Core API Usage (Async/Await)
 
-### Author(s):
+The new API is fully non-blocking. It moves heavy I/O tasks to background threads.
 
-- Ion Lupascu, ionlupascu@gmail.com
+### Get Printers & Status
+```javascript
+const printer = require('@guilherme_souza/node-printer-updated-fork');
 
-### Contibutors:
+async function listPrinters() {
+  // Non-blocking call! Returns a Promise
+  const printers = await printer.getPrintersAsync();
+  console.log(printers);
+}
+```
 
-- Thiago Lugli, @thiagoelg
-- Eko Eryanto, @ekoeryanto
-- Guilherme Souza @guilhermesou
+### Direct Printing (Jobs)
+```javascript
+const buffer = Buffer.from("Hello World");
 
-Feel free to download, test and propose new features
+await printer.printDirect({
+  data: buffer,
+  printer: "My_Thermal_Printer",
+  type: "RAW",
+  success: (jobId) => console.log("Job created:", jobId),
+  error: (err) => console.error(err)
+});
+```
 
-### License:
+---
 
+## 🧾 POS & Thermal Printing (Advanced Support)
+
+Built specifically to improve the experience of developers building Points of Sale (POS) and Receipt systems.
+
+### 1. Fluent Chaining API
+You can now build receipts using a single chain:
+```javascript
+const { Printer, PrinterTypes } = require('@guilherme_souza/node-printer-updated-fork');
+
+const pos = new Printer({ type: PrinterTypes.EPSON });
+
+pos.initHardware()
+   .alignCenter()
+   .bold(true)
+   .println("MY AWESOME STORE")
+   .bold(false)
+   .alignLeft()
+   .println("Item 1 ......... $10.00")
+   .println("Item 2 ......... $25.00")
+   .drawLine()
+   .bold(true)
+   .println("TOTAL: $35.00")
+   .cut();
+
+const buffer = pos.getBuffer();
+// send buffer using printDirect...
+```
+
+### 2. High-Quality Images (Dithering)
+Instead of printing flat "all or nothing" black/white images, we use the **Floyd-Steinberg** algorithm to simulate shades of gray on thermal paper.
+
+### 3. Canvas & JS Image Integration
+Print directly from a browser-like Canvas (using `node-canvas` or similar) by passing the raw pixel data:
+
+```javascript
+const ctx = canvas.getContext('2d');
+const { data, width, height } = ctx.getImageData(0, 0, 300, 300);
+
+// No need to save to PNG first!
+await pos.printImagePixels(data, width, height);
+```
+
+---
+
+## 🛠 Features
+
+- **Network Printers:** Support for TCP/IP printing via `NetworkPrinter`.
+- **Cross-Platform:** Native wrappers for Windows (Spooler API) and POSIX (CUPS).
+- **Driver Options:** Retrieve paper sizes and driver-specific options natively ([POSIX]).
+- **Job Monitoring:** Monitor job status and cancel/pause/resume tasks.
+
+---
+
+## 📝 Authors & Contributors
+
+This project is a continuation of the great work done by the original authors and contributors.
+
+### Original Author:
+- **Ion Lupascu**, ionlupascu@gmail.com (http://program-support.co.uk/)
+- **Klemen Kastelic**, klemen.kast@gmail.com (http://kastelic.net/)
+
+### Key Contributors:
+- **Thiago Lugli**, @thiagoelg (Maintaining the project for years)
+- **Eko Eryanto**, @ekoeryanto (Prebuild and CI integration)
+- **Guilherme Souza**, @guilhermesou (Modernization, N-API Migration, POS improvements)
+
+---
+
+## 📄 License
 [The MIT License (MIT)](http://opensource.org/licenses/MIT)
+
+Feel free to download, test and propose new features!
+

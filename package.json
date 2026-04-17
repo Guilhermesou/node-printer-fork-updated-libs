@@ -44,7 +44,7 @@
   ],
   "main": "./lib/printerHelper",
   "dependencies": {
-    "nan": "^2.19.0",
+    "node-addon-api": "^8.0.0",
     "pngjs": "^7.0.0",
     "prebuild-install": "^7.1.2",
     "unorm": "^1.6.0"
