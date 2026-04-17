@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
+    "jest": "^30.3.0",
     "node-abi": "^3.62.0",
     "nodeunit": "^0.11.3",
     "patch-package": "^8.0.0",
@@ -29,7 +30,9 @@
     "prebuild-all": "prebuild --all --force --strip --verbose --openssl_fips=X",
     "prebuild": "prebuild",
     "rebuild": "node-gyp rebuild",
-    "test": "nodeunit test"
+    "test": "jest",
+    "test:legacy": "nodeunit test",
+    "test:coverage": "jest --coverage"
   },
   "binary": {
     "module_name": "node-printer-fork-updated-libs",
