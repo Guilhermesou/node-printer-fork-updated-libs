@@ -331,7 +331,7 @@ namespace{
             error_str += getLastErrorCodeAndMessage();
             Napi::Object result_printer_job = Napi::Object::New(env);
             result_printer_job.Set("error", Napi::String::New(env, error_str.c_str()));
-            result_printer_jobs.Set(0, result_printer_job);
+            result_printer_jobs.Set((uint32_t)0, result_printer_job);
             return std::string("");
         }
         DWORD dummy_bytes = 0;
@@ -342,7 +342,7 @@ namespace{
             error_str += getLastErrorCodeAndMessage();
             Napi::Object result_printer_job = Napi::Object::New(env);
             result_printer_job.Set("error", Napi::String::New(env, error_str.c_str()));
-            result_printer_jobs.Set(0, result_printer_job);
+            result_printer_jobs.Set((uint32_t)0, result_printer_job);
             return std::string("");
         }
         JOB_INFO_2W *job = jobs.get();
