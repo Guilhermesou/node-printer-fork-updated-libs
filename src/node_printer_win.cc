@@ -60,7 +60,7 @@ namespace{
             }
         }
         operator HANDLE() {return _printer;}
-        operator bool() { return (!!_ok;}
+        operator bool() { return (!!_ok);}
         HANDLE & operator *() { return _printer;}
         HANDLE * operator ->() { return &_printer;}
         const HANDLE & operator ->() const { return _printer;}
@@ -323,7 +323,7 @@ namespace{
             Napi::Object result_printer_job = Napi::Object::New(env);
             result_printer_job.Set("error", Napi::String::New(env, error_str.c_str()));
             result_printer_jobs.Set(0, result_printer_job);
-            return std::string("";
+            return std::string("");
         }
         DWORD dummy_bytes = 0;
         bError = EnumJobsW(*iPrinterHandle, 0, iTotalJobs, 2, (LPBYTE)jobs.get(), bytes_needed, &dummy_bytes, &totalJobs);
@@ -334,7 +334,7 @@ namespace{
             Napi::Object result_printer_job = Napi::Object::New(env);
             result_printer_job.Set("error", Napi::String::New(env, error_str.c_str()));
             result_printer_jobs.Set(0, result_printer_job);
-            return std::string("";
+            return std::string("");
         }
         JOB_INFO_2W *job = jobs.get();
         for(DWORD i = 0; i < totalJobs; ++i, ++job)
@@ -343,7 +343,7 @@ namespace{
             parseJobObject(job, result_printer_job);
             result_printer_jobs.Set(i, result_printer_job);
         }
-        return std::string("";
+        return std::string("");
     }
 
     std::string parsePrinterInfo(const PRINTER_INFO_2W *printer, Napi::Object result_printer, PrinterHandle& iPrinterHandle)
