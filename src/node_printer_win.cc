@@ -36,6 +36,15 @@ namespace{
         ~MemValue () {
             free();
         }
+
+        /** (Re)allocate iSizeBytes bytes of memory, freeing any previously
+        * held buffer first
+        * @param iSizeBytes size in bytes of required allocating memory
+        */
+        void allocate(const DWORD iSizeBytes) {
+            free();
+            _value = (Type*)malloc(iSizeBytes);
+        }
     protected:
         virtual void free() {
             if(_value != NULL)
@@ -1105,8 +1114,7 @@ void watchJobThreadWin(WinJobWatchContext* context) {
                 DWORD dwNeeded = 0;
                 GetJobW(hPrinter, context->jobId, 2, NULL, 0, &dwNeeded);
                 if (dwNeeded > 0) {
-                    MemValue<JOB_INFO_2W> jobInfo;
-                    jobInfo.set((JOB_INFO_2W*)malloc(dwNeeded));
+                    MemValue<JOB_INFO_2W> jobInfo(dwNeeded);
                     if (GetJobW(hPrinter, context->jobId, 2, (LPBYTE)jobInfo.get(), dwNeeded, &dwNeeded)) {
                         DWORD currentState = jobInfo.get()->Status;
                         
