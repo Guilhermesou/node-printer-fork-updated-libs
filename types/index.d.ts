@@ -1,12 +1,14 @@
 export function getPrinters(): PrinterDetails[];
+export function getPrintersAsync(): Promise<PrinterDetails[]>;
 export function getPrinter(printerName: string): PrinterDetails;
+export function getPrinterAsync(printerName: string): Promise<PrinterDetails>;
 export function getPrinterDriverOptions(
   printerName: string
 ): PrinterDriverOptions;
 export function getSelectedPaperSize(printerName: string): string;
 export function getDefaultPrinterName(): string | undefined;
-export function printDirect(options: PrintDirectOptions): void;
-export function printFile(options: PrintFileOptions): void;
+export function printDirect(options: PrintDirectOptions): void | Promise<string>;
+export function printFile(options: PrintFileOptions): void | Promise<string>;
 export function getSupportedPrintFormats(): string[];
 export function getJob(printerName: string, jobId: number): JobDetails;
 export function setJob(
@@ -22,6 +24,10 @@ declare class NetworkPrinter {
     buffer: Buffer,
     options?: { waitForResponse?: boolean }
   ): Promise<void | Buffer>;
+  static discover(options?: {
+    timeout?: number;
+    concurrency?: number;
+  }): Promise<Array<{ host: string; port: number }>>;
 }
 
 declare enum PrinterTypes {
@@ -100,11 +106,6 @@ export declare class Printer {
     breakLine?: BreakLine;
   });
 
-  /**
-   * Send printing buffer to printer
-   * @param Object Options (docname, waitForResponse)
-   * @returns Promise<String>
-   */
   execute(options?: {
     docname?: string;
     waitForResponse?: boolean;
@@ -113,17 +114,22 @@ export declare class Printer {
   /**
    * Add cut
    */
-  cut(options?: CutOptions): void;
+  cut(options?: CutOptions): Printer;
 
   /**
    * Add partial cut
    */
-  partialCut(options?: CutOptions): void;
+  partialCut(options?: CutOptions): Printer;
+
+  /**
+   * Initialize hardware
+   */
+  initHardware(): Printer;
 
   /**
    * Add beep
    */
-  beep(numberOfBeeps?: number, lengthOfTheSound?: number): void;
+  beep(numberOfBeeps?: number, lengthOfTheSound?: number): Printer;
 
   /**
    * Get number of characters in one line
@@ -153,7 +159,7 @@ export declare class Printer {
   /**
    * Clear printing buffer
    */
-  clear(): void;
+  clear(): Printer;
 
   /**
    * Add buffer to printing buffer
@@ -171,129 +177,129 @@ export declare class Printer {
    * Add text
    * @param String text
    */
-  print(text: string): void;
+  print(text: string): Printer;
 
   /**
    * Add text with new line
    * @param String text
    */
-  println(text: string): void;
+  println(text: string): Printer;
 
   /**
    * Add vertical tab
    */
-  printVerticalTab(): void;
+  printVerticalTab(): Printer;
 
   /**
    * Set text bold
    * @param Boolean is enabled
    */
-  bold(enabled: boolean): void;
+  bold(enabled: boolean): Printer;
 
   /**
    * Set text undeline
    * @param Boolean is enabled
    */
-  underline(enabled: boolean): void;
+  underline(enabled: boolean): Printer;
 
   /**
    * Set text undeline and bold
    * @param Boolean is enabled
    */
-  underlineThick(enabled: boolean): void;
+  underlineThick(enabled: boolean): Printer;
 
   /**
    * Set text upside down
    * @param Boolean is enabled
    */
-  upsideDown(enabled: boolean): void;
+  upsideDown(enabled: boolean): Printer;
 
   /**
    * Set text background and text color inverted
    * @param Boolean is enabled
    */
-  invert(enabled: boolean): void;
+  invert(enabled: boolean): Printer;
 
   /**
    * Add open cash drawer
    */
-  openCashDrawer(): void;
+  openCashDrawer(): Printer;
 
   /**
    * Align text to center
    */
-  alignCenter(): void;
+  alignCenter(): Printer;
 
   /**
    * Align text to left
    */
-  alignLeft(): void;
+  alignLeft(): Printer;
 
   /**
    * Align text to right
    */
-  alignRight(): void;
+  alignRight(): Printer;
 
   /**
    * Set font type A
    */
-  setTypeFontA(): void;
+  setTypeFontA(): Printer;
 
   /**
    * Set font type B
    */
-  setTypeFontB(): void;
+  setTypeFontB(): Printer;
 
   /**
    * Set text size to normal
    */
-  setTextNormal(): void;
+  setTextNormal(): Printer;
 
   /**
    * Set text size to double height
    */
-  setTextDoubleHeight(): void;
+  setTextDoubleHeight(): Printer;
 
   /**
    * Set text size to double width
    */
-  setTextDoubleWidth(): void;
+  setTextDoubleWidth(): Printer;
 
   /**
    * Set text size to double height and width
    */
-  setTextQuadArea(): void;
+  setTextQuadArea(): Printer;
 
   /**
    * Add new line
    */
-  newLine(): void;
+  newLine(): Printer;
 
   /**
    * Draw a line of characters
    * @param String optional character to be repeated
    */
-  drawLine(character?: string): void;
+  drawLine(character?: string): Printer;
 
   /**
    * Set height and width font size
    * @param Number height
    * @param Number width
    */
-  setTextSize(height: number, width: number): void;
+  setTextSize(height: number, width: number): Printer;
 
   /**
    * Add font to left side and right side
    * @param String left side text
    * @param String right side text
    */
-  leftRight(left: string, right: string): void;
+  leftRight(left: string, right: string): Printer;
 
   /**
    * Insert table of data (width split equally)
    * @param Array Array of values
    */
-  table(data: string[]): void;
+  table(data: string[]): Printer;
 
   /**
    * Insert table of data with custom cell settings
@@ -307,13 +313,7 @@ export declare class Printer {
       cols?: number;
       bold?: boolean;
     }[]
-  ): void;
-
-  /**
-   * Check if printer is connected
-   * @returns Promise<boolean>
-   */
-  isPrinterConnected(): Promise<boolean>;
+  ): Printer;
 
   /**
    * Print QR code
@@ -327,7 +327,7 @@ export declare class Printer {
       correction?: "L" | "M" | "Q" | "H";
       model?: number;
     }
-  ): void;
+  ): Printer;
 
   /**
    * Add barcode
@@ -344,7 +344,7 @@ export declare class Printer {
       width?: number;
       height?: number;
     }
-  ): void;
+  ): Printer;
 
   /**
    * Add maxiCode barcode
@@ -356,7 +356,7 @@ export declare class Printer {
     settings?: {
       mode?: number;
     }
-  ): void;
+  ): Printer;
 
   /**
    * Add code128 barcode
@@ -370,7 +370,7 @@ export declare class Printer {
       height?: number;
       text?: number;
     }
-  ): void;
+  ): Printer;
 
   /**
    * Add pdf417 barcode
@@ -386,7 +386,7 @@ export declare class Printer {
       truncated?: boolean;
       columns?: number;
     }
-  ): void;
+  ): Printer;
 
   /**
    * Add image
@@ -397,10 +397,18 @@ export declare class Printer {
 
   /**
    * Add image buffer
-   * @param Buffer image buffer
+   * @param Buffer image buffer (PNG)
    * @returns Promise<Buffer> printer image buffer
    */
   printImageBuffer(buffer: Buffer): Promise<Buffer>;
+
+  /**
+   * Print pixels as an image (useful for Canvas ImageData)
+   * @param {Buffer|Uint8Array} data - RGBA pixel data
+   * @param {number} width 
+   * @param {number} height 
+   */
+  printImagePixels(data: Buffer | Uint8Array, width: number, height: number): Promise<Buffer>;
 
   /**
    * Send buffer to printer
@@ -413,7 +421,7 @@ export declare class Printer {
    * Manually set the printer driver
    * @param Object driver the printer driver
    */
-  setPrinterDriver(driver: Object): void;
+  setPrinterDriver(driver: Object): Printer;
 
   /**
    * Manually append content to the current buffer

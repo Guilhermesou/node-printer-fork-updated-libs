@@ -6,15 +6,6 @@ class Daruma extends PrinterType {
     this.config = require('./daruma-config');
   }
 
-  // ------------------------------ Append ------------------------------
-  append(appendBuffer) {
-    if (this.buffer) {
-      this.buffer = Buffer.concat([this.buffer, appendBuffer]);
-    } else {
-      this.buffer = appendBuffer;
-    }
-  }
-
   // ------------------------------ Beep ------------------------------
   beep() {
     return this.config.BEEP;
